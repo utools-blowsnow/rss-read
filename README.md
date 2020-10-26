@@ -1,19 +1,4 @@
-# example
+![BFQqKO.png](https://s1.ax1x.com/2020/10/22/BFQqKO.png)
 
-## Project setup
-```
-npm install
-```
+![BiAOIS.png](https://s1.ax1x.com/2020/10/22/BiAOIS.png)
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
