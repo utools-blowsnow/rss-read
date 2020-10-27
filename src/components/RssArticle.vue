@@ -86,10 +86,14 @@ export default {
     word-break: break-all;
     .desc{
       flex: 1;
+      img{
+        max-width: 100%;
+      }
     }
     .info{
       color: #bcbcbc;
       font-size: 10px;
+
     }
   }
 }

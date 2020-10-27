@@ -2,30 +2,66 @@
   <div class="RssArticleList">
     <div class="head">
       <div class="head-buttons" style="line-height: 45px;">
-        <button @click="unsubscribe">取消订阅</button>
-        <button @click="refresh">刷新</button>
+        开启通知：
+        <el-switch
+            v-model="notify"
+            @change="changeNotify"
+            active-color="#13ce66"
+            inactive-color="#ff4949">
+        </el-switch>
+        <el-button type="danger" size="mini" icon="el-icon-close" @click="unsubscribe">取消订阅</el-button>
+        <el-button  size="mini" icon="el-icon-refresh" @click="refresh">刷新</el-button>
+
+        <el-select v-model="style" placeholder="请选择" size="mini" style="width: 100px;">
+          <el-option label="图文列表" value="twlist"></el-option>
+          <el-option label="走马灯" value="carousel"></el-option>
+        </el-select>
       </div>
       <h3>{{ site.title }}</h3>
     </div>
     <main>
-      <rss-article v-for="(item,index) in list" :item="item" :key="index"></rss-article>
+      <template v-if="style === 'twlist'">
+        <rss-article-list-view :list="list"></rss-article-list-view>
+      </template>
+      <template v-if="style === 'carousel'">
+        <rss-article-carousel-view :list="list"></rss-article-carousel-view>
+      </template>
     </main>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
 import RssArticle from "@/components/RssArticle";
+import RssArticleListView from "@/views/article_view/RssArticleListView";
+import RssArticleCarouselView from "@/views/article_view/RssArticleCarouselView";
 export default {
   name: "RssArticleList",
-  components: {RssArticle},
-  props:['list','site'],
+  components: {RssArticleCarouselView, RssArticleListView, RssArticle},
+  props:['list','site','notify'],
+  data(){
+    return {
+      notifys: this.notify,
+
+      style: 'twlist'
+
+    }
+  },
   methods:{
     refresh(){
       this.$emit("refresh");
     },
     unsubscribe(){
-      this.$emit("unsubscribe");
+      this.$confirm('确认取消订阅?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.$emit("unsubscribe");
+      })
     },
+    changeNotify(val){
+      this.$emit("changeNotify",val);
+    }
   }
 }
 </script>
@@ -33,16 +69,17 @@ export default {
 <style lang="stylus" rel="stylesheet/stylus">
 .RssArticleList{
   background: #fff;
-  transform: scale3d(1, 1, 1);
-  .RssArticle{
-    border-bottom: 1px solid lightgrey;
-  }
+
   .head{
     margin-bottom: 5px;
     border-bottom: 1px solid lightgrey;
+    position: fixed;
+    width: calc(100vw - 210px);
+    background: #fff;
+    padding: 0 20px;
     h3{
       margin: 0;
-      padding: 10px 20px;
+      padding: 10px 0;
     }
     .head-buttons{
       float: right;
@@ -52,6 +89,9 @@ export default {
         margin-left: 10px;
       }
     }
+  }
+  main{
+    padding-top: 50px;
   }
 }
 </style>

@@ -1,6 +1,8 @@
 <template>
   <div class="RssSiteList">
-    <rss-site v-for="item in list" :item="item" :active="active.url === item.url" @click="clickSite(item)"></rss-site>
+    <div v-for="item in list" @click="clickSite(item)">
+      <rss-site :item="item" :active="active.url === item.url"></rss-site>
+    </div>
   </div>
 </template>
 

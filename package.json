@@ -12,16 +12,17 @@
     "core-js": "^3.6.5",
     "feedparser": "1.1.4",
     "request": "^2.88.2",
-    "vue": "^3.0.0",
-    "xml-js": "^1.6.11"
+    "vue": "^2.6.11",
+    "xml-js": "^1.6.11",
+    "element-ui": "^2.4.5"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
-    "@vue/compiler-sfc": "^3.0.0",
+    "vue-template-compiler": "^2.6.11",
+    "vue-cli-plugin-element": "~1.0.1",
     "stylus": "^0.54.7",
-    "stylus-loader": "^3.0.2",
-    "vue-cli-plugin-element-plus": "0.0.2"
+    "stylus-loader": "^3.0.2"
   },
   "browserslist": [
     "> 1%",
