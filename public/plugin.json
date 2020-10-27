@@ -1,0 +1,19 @@
+{
+  "pluginName": "RSS订阅",
+  "description": "RSS订阅",
+  "author": "blowsnow",
+  "main": "index.html",
+  "preload": "preload.js",
+  "home": "https://github.com/utools-blowsnow/rss-read",
+  "logo": "logo.png",
+  "version": "1.4.0",
+  "features": [
+    {
+      "code": "open",
+      "explain": "RSS订阅",
+      "cmds":[
+        "rss","feed"
+      ]
+    }
+  ]
+}
