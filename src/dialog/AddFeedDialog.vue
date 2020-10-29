@@ -10,11 +10,10 @@
             <el-input v-model="form.title"></el-input>
           </el-form-item>
           <el-form-item label="订阅地址" required>
-            <el-input v-model="form.url"></el-input>
+            <el-input v-model="form.url" placeholder="填写主域名，支持自动发现"></el-input>
           </el-form-item>
           <el-form-item label="刷新周期">
             <el-input v-model="form.refresh" placeholder="单位：毫秒，不填默认 1分钟"></el-input>
-
           </el-form-item>
         </el-form>
         <span slot="footer" class="dialog-footer">

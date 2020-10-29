@@ -2,7 +2,7 @@
   <div class="app">
     <div class="left-box">
       <div style="margin: 10px 5px;">
-        <b>订阅列表</b>
+        <b>订阅列表123</b>
         <el-button size="mini" icon="el-icon-plus" style="float: right" @click="openAddFeed"></el-button>
       </div>
       <rss-site-list :list="feeds" :active="active" @clickSite="clickSite"></rss-site-list>
@@ -33,7 +33,9 @@ export default {
   data(){
     return {
       feeds:[],
-      active: {},
+      active: {
+        list: []
+      },
       url: '',
       notify: false,
 
@@ -65,14 +67,15 @@ export default {
   },
   methods:{
     initFeeds(){
-      this.active = this.feeds[0];
-
-      for(let feed of this.feeds){
-        feeder.add({
-          url: feed.url,
-          refresh: 60000,
-          eventHandle: this.eventHandle(feed)
-        });
+      if (this.feeds.length > 0){
+        this.active = this.feeds[0];
+        for(let feed of this.feeds){
+          feeder.add({
+            url: feed.url,
+            refresh: 60000,
+            eventHandle: this.eventHandle(feed)
+          });
+        }
       }
       feeder.on('load', ({url,items}) => {
         console.log(url,items);
@@ -139,8 +142,13 @@ export default {
       try {  //捕获验证异常
         await feeder.check(item.url)
       }catch (e){
-        this.$alert('订阅地址验证：' + e.message);
-        return;
+        // 尝试自动发现
+        let feedUrl = await this.autoFeedUrl(item.url);
+        if (feedUrl === false){
+          this.$alert('订阅地址验证：' + e.message);
+          return;
+        }
+        item.url = feedUrl;
       }
       let feed = {title: item.title, url: item.url,badge: 0,list: []}
       this.feeds.push(feed);
@@ -151,6 +159,33 @@ export default {
       });
 
       this.saveFeedsDb();
+    },
+    async autoFeedUrl(url){
+      let domain = null;
+      //解析域名
+      if (url.indexOf("http") !== -1){
+        let arr = url.split("/");
+        domain = arr[0] + "//" + arr[2];
+      }else{
+        let arr = url.split("/");
+        domain = "http://" + arr[0];
+      }
+      let list = [
+        `${domain}/forum.php?mod=rss`,  // dz论坛
+        `${domain}/feed`,
+        `${domain}/rss`,
+        `${domain}/rss.xml`,
+        `${domain.replace('http://www.',"http://").replace('https://www.',"https://")
+            .replace('http://',"http://feed.")
+            .replace('https://',"https://feed.")}`
+      ];
+      for(let item of list){
+        try {  //捕获验证异常
+          await feeder.check(item);
+          return item;
+        }catch (e){}
+      }
+      return false;
     },
     openAddFeed(){
       this.$refs.addFeedDialog.open();

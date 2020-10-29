@@ -180,7 +180,9 @@ class Feed {
    * @param  {FeedParser} feedparser feedparser instance to use for parsing a retrieved feed
    */
   get(feedparser) {
+    var encoding = 'utf8';
     return new Promise((resolve, reject) => {
+
       request
           .get({
             url: this.url,
@@ -202,6 +204,20 @@ class Feed {
             //this.handleError(new FeedError(`Cannot connect to ${this.url}`, 'fetch_url_error', this.url));
 
           })
+          .pipe(new require('stream').Transform({  //转换流编码
+            transform: function(chunk,enc,cb){
+              if (/encoding\s*?=\s*?"gbk"/i.test(chunk.toString())){
+                encoding = "gbk";
+              }
+              if (encoding === "gbk"){  //编码转换
+                const iconv = require('iconv-lite');
+                const {Buffer} = require( "buffer");
+                chunk = iconv.decode(Buffer.from(chunk), encoding)
+              }
+              // console.log('Transform',encoding,chunk,chunk.toString())
+              cb(null,chunk)
+            }
+          }))
           .pipe(feedparser)
           .on('end', () => {});
     })
