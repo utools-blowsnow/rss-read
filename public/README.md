@@ -1,5 +1,7 @@
 # RSS订阅
-> 希望pull更多功能
+> 订阅各大网站内容
+>
+> 建议配合 https://docs.rsshub.app/ 网站使用
 
 # 功能
 - [x] 订阅
@@ -8,6 +10,7 @@
 - [x] 自动发现常见 rss地址
 
 # todo
+
 
 # 技术
 - feedparser
