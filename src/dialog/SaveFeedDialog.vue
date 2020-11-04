@@ -1,7 +1,7 @@
 <template>
-  <div class="AddFeedDialog">
+  <div class="SaveFeedDialog">
     <el-dialog
-        title="添加订阅"
+        title="保存订阅"
         :visible.sync="dialogVisible"
         :close-on-click-modal="false"
         width="400px">
@@ -26,24 +26,32 @@
 
 <script type="text/ecmascript-6">
 export default {
-  name: "AddFeedDialog",
+  name: "SaveFeedDialog",
   data(){
     return {
       dialogVisible: false,
-      form:{
+      form:{},
 
-      }
+      save: false,
+      old: {}
     }
   },
+
   methods:{
-    open(){
+    open(params={}){
       this.dialogVisible = true;
+      this.form = params;
+
+      this.old = {...params};
+      if (params.title) this.save = true;
+      else this.save = false;
     },
     close(){
       this.dialogVisible = false;
     },
     submit(){
-      this.$emit('addFeed',this.form);
+      if (this.save) this.$emit('saveFeed',{new: this.form, old: this.old});
+      else this.$emit('addFeed',this.form);
       this.close();
     }
   }
@@ -51,7 +59,7 @@ export default {
 </script>
 
 <style lang="stylus" rel="stylesheet/stylus">
-.AddFeedDialog{
+.SaveFeedDialog{
 
 }
 </style>

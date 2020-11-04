@@ -5,6 +5,15 @@ import './plugins/help.js'
 Vue.config.productionTip = false
 Vue.config.devtools = true;
 
-new Vue({
-    render: h => h(App),
-}).$mount('#app')
+if (window.is_utools){
+    utools.onPluginReady(() => {
+        new Vue({
+            render: h => h(App),
+        }).$mount('#app')
+    })
+}else{
+    new Vue({
+        render: h => h(App),
+    }).$mount('#app')
+}
+

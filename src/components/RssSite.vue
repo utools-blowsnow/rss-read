@@ -64,6 +64,10 @@ export default {
 }
 .RssSite .title{
   margin: 0 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100px;
 }
 .RssSite .num-box{
   float: right;

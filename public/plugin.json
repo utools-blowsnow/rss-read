@@ -6,7 +6,7 @@
   "preload": "preload.js",
   "homepage": "https://github.com/utools-blowsnow/rss-read",
   "logo": "logo.png",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "features": [
     {
       "code": "open",

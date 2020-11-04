@@ -2,22 +2,23 @@
   <div class="RssArticleList">
     <div class="head">
       <div class="head-buttons" style="line-height: 45px;">
-        开启通知：
+        通知：
         <el-switch
             v-model="notify"
             @change="changeNotify"
             active-color="#13ce66"
             inactive-color="#ff4949">
         </el-switch>
-        <el-button type="danger" size="mini" icon="el-icon-close" @click="unsubscribe">取消订阅</el-button>
-        <el-button  size="mini" icon="el-icon-refresh" @click="refresh">刷新</el-button>
+        <el-button type="danger" size="mini" icon="el-icon-close" @click="unsubscribe"></el-button>
+        <el-button  size="mini" icon="el-icon-refresh" @click="refresh"></el-button>
 
         <el-select v-model="style" placeholder="请选择" size="mini" style="width: 100px;">
           <el-option label="图文列表" value="twlist"></el-option>
           <el-option label="走马灯" value="carousel"></el-option>
         </el-select>
       </div>
-      <h3>{{ site.title }}</h3>
+      <h3 style="display: inline-block">{{ site.title }}</h3>
+      <i class="el-icon-setting" @click="changeFeed"></i>
     </div>
     <main>
       <template v-if="style === 'twlist'">
@@ -61,6 +62,9 @@ export default {
     },
     changeNotify(val){
       this.$emit("changeNotify",val);
+    },
+    changeFeed(){
+      this.$emit('changeFeed',this.site)
     }
   }
 }
