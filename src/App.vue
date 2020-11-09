@@ -60,9 +60,12 @@ export default {
   },
   methods:{
     initFeeds(){
+      this.feeds.unshift({title: '所有', url: '',badge: 0,list: [],logo: './logo.png',hide: true});
+
       if (this.feeds.length > 0){
         this.active = this.feeds[0];
         for(let feed of this.feeds){
+          if (feed.hide) continue;
           feeder.add({
             url: feed.url,
             refresh: 60000,
@@ -77,6 +80,7 @@ export default {
     saveFeedsDb(){
       let newfeeds = [];
       for(let feed of this.feeds){
+        if (feed.hide) continue;
         let newfeed = {...feed};
         newfeed.badge = 0;
         newfeed.list = [];
@@ -91,25 +95,34 @@ export default {
         this.feeds = feeds;
       }
     },
+    addFeedItem(feed,item,notify=true){
+      var that = this;
+
+      feed.list.unshift(item);
+      feed.badge++;
+      if (that.notify && notify){
+        let content = '['+feed.title+'] ' + item.title;
+        if (window.is_utools){
+          utools.showNotification(content)
+        }else{
+          setTimeout(function (){
+            that.$notify.info(content);
+          },100)
+        }
+      }
+    },
 
     eventHandle(feed){
       var that = this;
       return function (item){
         if (feed.list === undefined) feed.list = [];
-        feed.list.unshift(item);
-        feed.badge++;
-        if (that.notify){
-          let content = '['+feed.title+'] ' + item.title;
-          if (window.is_utools){
-            utools.showNotification(content)
-          }else{
-            setTimeout(function (){
-              that.$notify.info(content);
-            },100)
-          }
-        }
+
+        that.addFeedItem(that.feeds[0],item,false);
+
+        that.addFeedItem(feed,item);
       };
     },
+
 
     // event
     clickSite(item){
