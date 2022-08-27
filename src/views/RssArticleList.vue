@@ -1,101 +1,134 @@
 <template>
   <div class="RssArticleList">
-    <div class="head">
-      <div class="head-buttons" style="line-height: 45px;">
-        通知：
-        <el-switch
-            v-model="notify"
-            @change="changeNotify"
-            active-color="#13ce66"
-            inactive-color="#ff4949">
-        </el-switch>
-        <el-button type="danger" size="mini" icon="el-icon-close" @click="unsubscribe"></el-button>
-        <el-button  size="mini" icon="el-icon-refresh" @click="refresh"></el-button>
+      <div class="head-box" style="background: #f2f2f2;">
+        <div class="head-site-title">
+          {{ site.title }}
+        </div>
+        <el-button-group>
+<!--          <el-button size="mini" type="primary" icon="el-icon-search"></el-button>-->
+          <el-button size="mini" type="primary" icon="el-icon-check" @click="emitReadFeed" title="全部已读"></el-button>
+          <el-button size="mini" type="primary" icon="el-icon-refresh-right" @click="freshFeed" title="获取当前订阅最新信息"></el-button>
+          <template v-if="!site.system">
 
-        <el-select v-model="style" placeholder="请选择" size="mini" style="width: 100px;">
-          <el-option label="图文列表" value="twlist"></el-option>
-          <el-option label="走马灯" value="carousel"></el-option>
-        </el-select>
+            <el-button size="mini" type="primary" icon="el-icon-setting" @click="emitChangeFeed"></el-button>
+
+            <el-button v-if="site.notify" size="mini" type="primary"
+                       icon="el-icon-bell" @click="emitChangeNotify" title="关闭通知"></el-button>
+            <el-button v-if="!site.notify" size="mini" type="info"
+                       icon="el-icon-bell" @click="emitChangeNotify" title="开启通知"> </el-button>
+            <!--          <el-button size="mini" type="primary" icon="el-icon-star-on"></el-button>-->
+            <el-button size="mini" type="danger" icon="el-icon-delete" @click="emitUnsubscribe" title="删除订阅"></el-button>
+          </template>
+        </el-button-group>
       </div>
-      <h3 style="display: inline-block">{{ site.title }}</h3>
-      <i class="el-icon-setting" @click="changeFeed"></i>
-    </div>
     <main>
-      <template v-if="style === 'twlist'">
-        <rss-article-list-view :list="list"></rss-article-list-view>
-      </template>
-      <template v-if="style === 'carousel'">
-        <rss-article-carousel-view :list="list"></rss-article-carousel-view>
-      </template>
+        <rss-article-list-view :site="site" :list="siteArticleList"></rss-article-list-view>
     </main>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
-import RssArticle from "@/components/RssArticle";
 import RssArticleListView from "@/views/article_view/RssArticleListView";
-import RssArticleCarouselView from "@/views/article_view/RssArticleCarouselView";
+
+const FeedHelp = require('@/lib/FeedHelp');
+
 export default {
   name: "RssArticleList",
-  components: {RssArticleCarouselView, RssArticleListView, RssArticle},
-  props:['list','site','notify'],
-  data(){
-    return {
-      notifys: this.notify,
-
-      style: 'twlist'
-
+  components: {RssArticleListView},
+  props: {
+    site: Object,
+    list: Array
+  },
+  computed:{
+    siteArticleList(){
+      var list = [];
+      if (this.site.url === 'unread'){
+        var temp = [...this.list];
+        for (const item of temp) {
+          for (const article of item.list) {
+            article.site = item;
+            if (window.db("read_" + article.link) !== 1) list.push(article);
+          }
+        }
+      }else if (this.site.url === 'all'){
+        var temp = [...this.list];
+        for (const item of temp) {
+          for (const article of item.list) {
+            article.site = item;
+          }
+          list.push(...item.list);
+        }
+      }else{
+        list = [...this.site.list];
+        for (const article of list) {
+          article.site = this.site;
+        }
+      }
+      return list;
     }
   },
   methods:{
-    refresh(){
-      this.$emit("refresh");
+    emitChangeNotify(){
+      this.$emit('changeNotify',!this.site.notify);
     },
-    unsubscribe(){
+
+    emitChangeFeed(){
+      this.$emit('changeFeed',this.site);
+    },
+    emitUnsubscribe(){
       this.$confirm('确认取消订阅?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.$emit("unsubscribe");
+        FeedHelp.removeFeed(this.site);
+        this.$emit('deleteFeed',this.site)
       })
     },
-    changeNotify(val){
-      this.$emit("changeNotify",val);
+
+    emitReadFeed(){
+      if (this.site.system){   // 系统 全部设置为已读
+        for (const item of this.list) {
+          for (const article of item.list) {
+            window.db("read_" + article.link,1);
+          }
+          item.badge = 0;
+        }
+      }else{
+        for (const article of this.site.list) {
+          window.db("read_" + article.link,1);
+        }
+        this.site.badge = 0;
+      }
     },
-    changeFeed(){
-      this.$emit('changeFeed',this.site)
+
+    freshFeed(){
+      if (this.site.system){   // 系统 刷新所有的订阅
+        for (const feed of this.list) {
+          FeedHelp.refreshFeed(feed);
+        }
+      }else{
+        FeedHelp.refreshFeed(this.site);
+      }
     }
   }
 }
 </script>
 
-<style lang="stylus" rel="stylesheet/stylus">
-.RssArticleList{
-  background: #fff;
-
-  .head{
-    margin-bottom: 5px;
-    border-bottom: 1px solid lightgrey;
-    position: fixed;
-    width: calc(100vw - 210px);
-    background: #fff;
-    padding: 0 20px;
-    h3{
-      margin: 0;
-      padding: 10px 0;
+<style lang="scss" rel="stylesheet/scss">
+.RssArticleList {
+  .head-box{
+    background: rgb(242, 242, 242);
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #cdcdcd;
+    padding-right: 10px;
+    .head-site-title{
+      font-size: 20px;
+      margin-left: 10px;
     }
-    .head-buttons{
-      float: right;
-      line-height: 45px;
-      >button{
-        line-height: 1;
-        margin-left: 10px;
-      }
-    }
-  }
-  main{
-    padding-top: 50px;
   }
 }
 </style>

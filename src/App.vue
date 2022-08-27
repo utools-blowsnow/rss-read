@@ -1,106 +1,83 @@
 <template>
   <div class="app">
     <div class="left-box">
-      <div style="margin: 10px 5px;">
+      <div style="margin: 10px 5px;border-bottom: 1px solid #cdcdcd;">
         <b>订阅列表</b>
-        <el-button size="mini" icon="el-icon-plus" style="float: right" @click="openAddFeed"></el-button>
+        <el-button size="mini" type="primary" icon="el-icon-plus" style="float: right" @click="openAddFeed"></el-button>
       </div>
-      <rss-site-list :list="feeds" :active="active" @clickSite="clickSite"></rss-site-list>
+      <rss-list :systemList="systemList" :list="feeds" :active="active" @clickSite="clickSite" @addFeed="openAddFeed"></rss-list>
 
     </div>
     <div class="right-box">
-      <rss-read v-show="url !== ''" :site="active" :url="url" @back="url = ''"></rss-read>
-      <rss-article-list v-show="url === ''" :site="active" :list="active.list" :notify="notify"
-                        @unsubscribe="removeFeed(active)" @refresh="refreshFeed(active)"
-                        @changeNotify="changeNotify" @changeFeed="changeFeed"></rss-article-list>
+        <rss-article-list :list="feeds" :site="active" @changeFeed="onChangeFeed" @changeNotify="onChangeNotify" @deleteFeed="onDeleteFeed" ></rss-article-list>
+        <el-backtop target=".right-box"></el-backtop>
     </div>
-    <save-feed-dialog ref="addFeedDialog" @addFeed="addFeed" @saveFeed="saveFeed"></save-feed-dialog>
+    <save-feed-dialog ref="addFeedDialog"></save-feed-dialog>
   </div>
 </template>
 
 <script>
-import RssSiteList from "@/views/RssSiteList";
 import RssArticleList from "@/views/RssArticleList";
 import RssReader from "@/lib/rssReader";
 import SaveFeedDialog from "@/dialog/SaveFeedDialog";
 import RssRead from "@/views/RssRead";
+import RssList from "@/views/RssList";
 
 const RssFeedEmitter = require('@/lib/rss-feed-emitter/FeedEmitter');
 const feeder = new RssFeedEmitter();
 
+
+const FeedHelp = require('@/lib/FeedHelp');
+
 export default {
   name: 'App',
-  components: {RssRead, SaveFeedDialog, RssArticleList, RssSiteList},
+  components: {RssList, RssRead, SaveFeedDialog, RssArticleList},
   data(){
     return {
       feeds:[],
+      systemList: [
+        {title: '未读', url: 'unread',badge: 0,list: [],logo: './logo.png',system: true},
+        {title: '所有', url: 'all',badge: 0,list: [],logo: './logo.png',system: true},
+      ],
       active: {
         list: []
       },
       url: '',
-      notify: false,
+
+      isInitNotify: false
     }
   },
-  created(){
-    // 全局拦截a标签点击事件
-    $("body").off("click","a");
-    $("body").on("click","a",(event)=>{
-      event.preventDefault();
-      let href = event.target.href;
-      if (window.is_utools){
-        utools.ubrowser.goto(href).run({ width: 1200, height: 600 })
-      }else{
-        window.open(href)
+  watch:{
+    feeds:{
+      deep: true,
+      handler(){
+        console.log('change feeds ');
       }
-    })
+    }
   },
   mounted(){
-    this.getFeedsDb();
-    this.initFeeds();
+    FeedHelp.initFeeds(this.eventHandle);
+
+    var feeds = FeedHelp.getLoadFeeds();
+
+    this.feeds = feeds;
+
+    // 首次打开 10秒内不通知
+    setTimeout(() => {
+      this.isInitNotify = true;
+    },10000)
   },
   methods:{
-    initFeeds(){
-      this.feeds.unshift({title: '所有', url: '',badge: 0,list: [],logo: './logo.png',hide: true});
-
-      if (this.feeds.length > 0){
-        this.active = this.feeds[0];
-        for(let feed of this.feeds){
-          if (feed.hide) continue;
-          feeder.add({
-            url: feed.url,
-            refresh: 60000,
-            eventHandle: this.eventHandle(feed)
-          });
-        }
-      }
-      feeder.on('load', ({url,items}) => {
-        console.log(url,items);
-      })
-    },
-    saveFeedsDb(){
-      let newfeeds = [];
-      for(let feed of this.feeds){
-        if (feed.hide) continue;
-        let newfeed = {...feed};
-        newfeed.badge = 0;
-        newfeed.list = [];
-        newfeeds.push(newfeed);
-      }
-      window.db("feeds",newfeeds);
-    },
-    getFeedsDb(){
-      let feeds = window.db("feeds");
-      console.log(feeds);
-      if (feeds){
-        this.feeds = feeds;
-      }
-    },
     addFeedItem(feed,item,notify=true){
       var that = this;
 
       feed.list.unshift(item);
       feed.badge++;
-      if (that.notify && notify){
+
+      if (notify && feed.notify){
+        if (window.db("notify_" + item.link)){   // 已经阅读过了的
+          return;
+        }
         let content = '['+feed.title+'] ' + item.title;
         if (window.is_utools){
           utools.showNotification(content)
@@ -110,6 +87,9 @@ export default {
           },100)
         }
       }
+
+
+      window.db("notify_" + item.link,1);
     },
 
     eventHandle(feed){
@@ -117,129 +97,81 @@ export default {
       return function (item){
         if (feed.list === undefined) feed.list = [];
 
-        that.addFeedItem(that.feeds[0],item,false);
+        console.log('eventHandle',feed,item);
 
-        that.addFeedItem(feed,item);
+        // 刚开始初始化不要通知
+        that.addFeedItem(feed,item,this.isInitNotify);
       };
     },
 
 
-    // event
+    // 点击订阅的站点，获取订阅的文章列表
     clickSite(item){
       console.log('clickSite',item);
       this.active = item;
-      this.active.badge = 0;
-
-      this.url = '';
 
       this.$nextTick(()=>{
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
       })
     },
-    removeFeed(item){
-      feeder.remove(item.url);
-      const pos = this.feeds.findIndex((e) => e.url === item.url);
-      this.feeds.splice(pos, 1);
-      this.active = this.feeds.length > 0 ? this.feeds[0]: {};
 
-      this.saveFeedsDb();
-    },
-    refreshFeed(item){
-      let feed = feeder.findFeed(item);
-      feeder.refresh(feed);
-    },
-    async addFeed(item){
-      try {  //捕获验证异常
-        await feeder.check(item.url)
-      }catch (e){
-        // 尝试自动发现
-        let feedUrl = await this.autoFeedUrl(item.url);
-        if (feedUrl === false){
-          this.$alert('订阅地址验证：' + e.message);
-          return;
-        }
-        item.url = feedUrl;
-      }
-      let feed = {title: item.title, url: item.url,badge: 0,list: []}
-      this.feeds.push(feed);
-      feeder.add({
-        url: item.url,
-        refresh: item.refresh?item.refresh:60000,
-        eventHandle: this.eventHandle(feed)
-      });
-
-      this.saveFeedsDb();
-    },
-
-    async autoFeedUrl(url){
-      let domain = null;
-      //解析域名
-      if (url.indexOf("http") !== -1){
-        let arr = url.split("/");
-        domain = arr[0] + "//" + arr[2];
-      }else{
-        let arr = url.split("/");
-        domain = "http://" + arr[0];
-      }
-      let list = [
-        `${domain}/forum.php?mod=rss`,  // dz论坛
-        `${domain}/feed`,
-        `${domain}/rss`,
-        `${domain}/rss.xml`,
-        `${domain.replace('http://www.',"http://").replace('https://www.',"https://")
-            .replace('http://',"http://feed.")
-            .replace('https://',"https://feed.")}`
-      ];
-      for(let item of list){
-        try {  //捕获验证异常
-          await feeder.check(item);
-          return item;
-        }catch (e){}
-      }
-      return false;
-    },
     openAddFeed(){
       this.$refs.addFeedDialog.open();
     },
-    changeNotify(val){
-      this.notify = val;
+    onChangeNotify(val){
+      this.active.notify = val;
+
+      FeedHelp.saveFeedsFromDb()
     },
-    changeFeed(item){
+    onChangeFeed(item){
       this.$refs.addFeedDialog.open(item);
     },
-    saveFeed(params){
-      let item = params.new;
-      feeder.remove(params.old.url);
-      feeder.add({
-        url: item.url,
-        refresh: item.refresh?item.refresh:60000,
-        eventHandle: this.eventHandle(item)
-      });
-      this.saveFeedsDb();
-    },
+    onDeleteFeed(){
+      this.clickSite(this.systemList[0]);
+    }
   }
 }
 </script>
 
 <style lang="stylus">
 .app{
+  height: 100vh;
+  background: #f7f6f4;
+  display: flex;
 }
 .left-box{
   width: 200px;
   /*padding: 10px;*/
-  background: #fff;
+  background: #f7f6f4;
   height: 100vh;
   overflow: auto;
   float: left;
   border-right: 1px solid #d7d7d7;
 
-  position: fixed;
   z-index: 999;
+
+  display: flex;
+  flex-direction: column;
+}
+.left-box .RssList{
+  flex: 1;
+  overflow: auto;
+}
+.left-box .rss-foot{
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border-top: 1px solid lightgrey;
+  margin-top: 20px;
+}
+.left-box .rss-foot i{
+  font-size: 20px;
+  cursor: pointer;
 }
 .right-box{
-  width: calc(100vw - 210px);
-  margin-left: 200px;
+  flex: 1;
+  overflow: auto;
 }
 body{
   margin: 0;

@@ -1,24 +1,58 @@
 <template>
-  <div class="RssArticle">
+  <div class="RssArticle" :class="{'read': isRead}" @click="readArticle(item)">
 <!--    <div v-if="item.enclosures" class="left-article-box">-->
 <!--      <img :src="item.enclosures" alt="" style="width: 80px;height: 80px">-->
 <!--    </div>-->
-    <div class="right-article-box">
-      <h3 class="title"><a :href="item.link" target="_blank">{{ item.title }}</a></h3>
-      <div class="desc" v-html="item.summary"></div>
-      <div class="info">
-        <span>{{ item.author }} {{ item.categories instanceof Array?item.categories.join(','):item.categories}}</span>
+    <el-badge is-dot class="item" :hidden="isRead" style="width: 100%;">
+      <div class="info" style="margin-left: 40px;">
+        <span>{{ item.site.title }}</span>
         <span :title="item.pubDate" style="float: right;">{{ timeago(item.pubDate) }}</span>
       </div>
-    </div>
+      <div class="article-info-box">
+        <img style="width: 30px; height: 30px;" :src="item.site.logo || (getDomain(item.site) + '/favicon.ico')" alt="">
+        <div class="right-article-box">
+          <h3 class="title">{{ item.title }}</h3>
+          <div class="desc" v-html="item.summary"></div>
+        </div>
+        <img v-if="enclosures" :src="enclosures" alt="" style="width: 80px;height: 80px">
+      </div>
+    </el-badge>
+
   </div>
 </template>
 
 <script type="text/ecmascript-6">
 export default {
   name: "RssArticle",
-  props:['item'],
+  props: {
+    item: Object,
+    site: Object
+  },
+  data(){
+    return {
+      isRead: false
+    }
+  },
+  watch:{
+    site:{
+      deep: true,
+      handler(){
+        this.isRead = window.db("read_" + this.item.link);
+      }
+    }
+  },
   computed:{
+    getDomain(){
+      return function (item){
+        if (item.domain) return item.domain;
+        var domain = item.url.split('/'); //以“/”进行分割
+        if(domain[2]) {
+          return domain[0] + '//' + domain[2];
+        }else{
+          return item.url;
+        }
+      }
+    },
     timeago(){   //dateTimeStamp是一个时间毫秒，注意时间戳是秒的形式，在这个毫秒的基础上除以1000，就是十位数的时间戳。13位数的都是时间毫秒。
       return function (dateTimeStamp){
           // dateTimeStamp = Date.parse(dateTimeStamp.replace(/-/gi, "/"));
@@ -66,35 +100,77 @@ export default {
           }
           return result;
       }
+    },
+    enclosures(){
+      if (this.item.enclosures && this.item.enclosures.length > 0) return this.item.enclosures[0].url;
+      return null;
+    },
+  },
+  mounted(){
+    this.isRead = window.db("read_" + this.item.link);
+  },
+  methods:{
+    readArticle(item){
+      // 记录已读
+      window.db("read_" + item.link,1);
+      this.site.badge--;
+
+      this.isRead = true;
+
+      console.log('readArticle',window.db("read_" + item.link));
+
+      if (window.is_utools){
+        utools.ubrowser.goto(item.link).run({ width: 1200, height: 600 })
+      }else{
+        window.open(item.link)
+      }
     }
   }
 }
 </script>
 
-<style lang="stylus" rel="stylesheet/stylus">
+<style lang="scss" rel="  stylesheet/sass">
 .RssArticle{
-  display: flex;
+
   padding: 10px;
-  .title{
-    margin: 0;
+
+  .info{
+    color: #bcbcbc;
+    font-size: 10px;
   }
-  .right-article-box{
-    margin-left: 10px;
-    flex: 1;
+
+  .article-info-box{
     display: flex;
-    flex-direction: column;
-    word-break: break-all;
-    .desc{
+    .right-article-box{
+      margin-left: 10px;
       flex: 1;
-      img{
-        max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      word-break: break-all;
+      .title{
+        margin: 2px 0;
+        font-size: 17px;
+        color: #333;
+      }
+      .desc{
+        flex: 1;
+        font-size: 12px;
+        color: #a5a5a5;
+        img{
+          max-width: 100%;
+        }
+      }
+      .info{
+        color: #bcbcbc;
+        font-size: 10px;
+
       }
     }
-    .info{
-      color: #bcbcbc;
-      font-size: 10px;
-
-    }
+  }
+}
+.RssArticle.read{
+  .title{
+    color: #8b8b8b!important;
   }
 }
 </style>

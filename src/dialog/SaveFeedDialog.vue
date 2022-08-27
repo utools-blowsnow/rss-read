@@ -15,6 +15,8 @@
           <el-form-item label="刷新周期">
             <el-input v-model="form.refresh" placeholder="单位：毫秒，不填默认 1分钟"></el-input>
           </el-form-item>
+          <el-alert title="自动发现格式：DZ论坛，domain.com/feed，domain.com/rss，domain.com/rss.xml，feed.domain.com" :closable="false" type="error"></el-alert>
+          <el-alert title="手动订阅地址请从：https://docs.rsshub.app/ 获取" :closable="false" type="error"></el-alert>
         </el-form>
         <span slot="footer" class="dialog-footer">
           <el-button @click="close()">取 消</el-button>
@@ -25,15 +27,22 @@
 </template>
 
 <script type="text/ecmascript-6">
+
+const FeedHelp = require('@/lib/FeedHelp');
 export default {
   name: "SaveFeedDialog",
   data(){
     return {
       dialogVisible: false,
-      form:{},
+      form:{
+        notify: true
+      },
 
       save: false,
-      old: {}
+      old: {},
+
+      feedFindUrl: null,
+      feedFindOptions: []
     }
   },
 
@@ -50,9 +59,30 @@ export default {
       this.dialogVisible = false;
     },
     submit(){
-      if (this.save) this.$emit('saveFeed',{new: this.form, old: this.old});
-      else this.$emit('addFeed',this.form);
-      this.close();
+      let result;
+
+
+      const loading = this.$loading({
+        lock: true,
+        text: 'Loading',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+
+      if (this.save){
+        result = FeedHelp.saveFeed({new: this.form, old: this.old});
+      }else{
+        result = FeedHelp.addFeed(this.form);
+      }
+      result.then(() => {
+        loading.close();
+        this.close();
+      }).catch((e) => {
+        loading.close();
+        console.log(e);
+        this.$notify.info(e.message);
+      })
+
     }
   }
 }
